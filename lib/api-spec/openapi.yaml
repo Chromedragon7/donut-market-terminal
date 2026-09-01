@@ -1,0 +1,868 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Donut Market Terminal API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: market
+    description: Market analytics
+  - name: items
+    description: Item detail and history
+  - name: auctions
+    description: Current auction listings
+  - name: leaderboards
+    description: Leaderboards
+  - name: players
+    description: Player lookup and stats
+  - name: admin
+    description: Admin operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /setup-status:
+    get:
+      operationId: getSetupStatus
+      tags: [health]
+      summary: Setup and data freshness status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetupStatus"
+  /market/overview:
+    get:
+      operationId: getMarketOverview
+      tags: [market]
+      summary: Market overview metrics
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketOverview"
+  /market/screener:
+    get:
+      operationId: getMarketScreener
+      tags: [market]
+      summary: Market screener table
+      parameters:
+        - { name: scope, in: query, schema: { type: string, enum: [base, variant], default: base } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: sortBy, in: query, schema: { type: string, default: volume24h } }
+        - { name: sortDir, in: query, schema: { type: string, enum: [asc, desc], default: desc } }
+        - { name: minVolume, in: query, schema: { type: number } }
+        - { name: minSamples, in: query, schema: { type: integer } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreenerPage"
+  /auctions:
+    get:
+      operationId: getAuctions
+      tags: [auctions]
+      summary: Current auction listings
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: seller, in: query, schema: { type: string } }
+        - { name: scope, in: query, schema: { type: string, enum: [base, variant], default: base } }
+        - { name: enchant, in: query, description: Filter to listings whose item carries this enchantment id, schema: { type: string } }
+        - { name: trim, in: query, description: Filter by trim material or pattern (substring match), schema: { type: string } }
+        - { name: lore, in: query, description: Filter to listings whose lore contains this text, schema: { type: string } }
+        - { name: minPrice, in: query, description: Minimum unit price, schema: { type: number } }
+        - { name: maxPrice, in: query, description: Maximum unit price, schema: { type: number } }
+        - { name: minQuantity, in: query, schema: { type: integer } }
+        - { name: maxQuantity, in: query, schema: { type: integer } }
+        - { name: maxTimeLeftMs, in: query, description: Only listings ending within this many ms, schema: { type: integer } }
+        - { name: sortBy, in: query, schema: { type: string, default: unitPrice } }
+        - { name: sortDir, in: query, schema: { type: string, enum: [asc, desc], default: asc } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuctionsPage"
+  /items/{scopeKey}:
+    get:
+      operationId: getItemDetail
+      tags: [items]
+      summary: Item detail
+      parameters:
+        - { name: scopeKey, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ItemDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /items/history:
+    get:
+      operationId: getItemHistory
+      tags: [items]
+      summary: Item OHLC price history
+      parameters:
+        - { name: scopeKey, in: query, required: true, schema: { type: string } }
+        - { name: interval, in: query, schema: { type: string, enum: ["5m", "1h", "1d"], default: "1h" } }
+        - { name: range, in: query, schema: { type: string, enum: ["1h", "6h", "24h", "7d", "30d", "90d", "all"], default: "7d" } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceHistory"
+  /items/{scopeKey}/listings:
+    get:
+      operationId: getItemListings
+      tags: [items]
+      summary: Current listings for an item
+      parameters:
+        - { name: scopeKey, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Listing" }
+  /items/transactions:
+    get:
+      operationId: getItemTransactions
+      tags: [items]
+      summary: Recent sales for an item
+      parameters:
+        - { name: scopeKey, in: query, required: true, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Sale" }
+  /data/sales:
+    get:
+      operationId: getDataSales
+      tags: [data]
+      summary: Explore recorded sales with filters
+      parameters:
+        - { name: from, in: query, schema: { type: string } }
+        - { name: to, in: query, schema: { type: string } }
+        - { name: item, in: query, schema: { type: string } }
+        - { name: seller, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataSalesPage"
+  /leaderboards:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboards]
+      summary: Leaderboard for a category
+      parameters:
+        - { name: category, in: query, required: true, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: pageSize, in: query, schema: { type: integer, default: 50 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardPage"
+  /players:
+    get:
+      operationId: getPlayer
+      tags: [players]
+      summary: Player lookup and stats
+      parameters:
+        - { name: user, in: query, required: true, schema: { type: string } }
+        - { name: refresh, in: query, schema: { type: boolean, default: false } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlayerProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/login:
+    post:
+      operationId: adminLogin
+      tags: [admin]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminLoginInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSession" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/logout:
+    post:
+      operationId: adminLogout
+      tags: [admin]
+      summary: Admin logout
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+  /admin/status:
+    get:
+      operationId: getAdminStatus
+      tags: [admin]
+      summary: Admin operational status
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminStatus" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/sync:
+    post:
+      operationId: triggerSync
+      tags: [admin]
+      summary: Trigger a manual sync
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncTriggerInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncRunResult" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/watched-players:
+    get:
+      operationId: getWatchedPlayers
+      tags: [admin]
+      summary: List watched players
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WatchedPlayer" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    post:
+      operationId: addWatchedPlayer
+      tags: [admin]
+      summary: Add a watched player
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WatchedPlayerInput" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WatchedPlayer" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/watched-players/{username}:
+    delete:
+      operationId: removeWatchedPlayer
+      tags: [admin]
+      summary: Remove a watched player
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkResponse" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/import/preview:
+    post:
+      operationId: previewImport
+      tags: [admin]
+      summary: Preview a historical data import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportReport" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /admin/import/commit:
+    post:
+      operationId: commitImport
+      tags: [admin]
+      summary: Commit a historical data import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ImportInput" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ImportReport" }
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status: { type: string }
+      required: [status]
+    OkResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+      required: [ok]
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+    SetupStatus:
+      type: object
+      required: [apiKeyConfigured, databaseConfigured, adminConfigured, hasData, stale]
+      properties:
+        apiKeyConfigured: { type: boolean }
+        databaseConfigured: { type: boolean }
+        adminConfigured: { type: boolean }
+        hasData: { type: boolean }
+        stale: { type: boolean }
+        lastTransactionSyncAt: { type: ["string", "null"] }
+        lastListingSyncAt: { type: ["string", "null"] }
+        lastLeaderboardSyncAt: { type: ["string", "null"] }
+        collectionStartedAt: { type: ["string", "null"] }
+        transactionCount: { type: integer }
+        listingCount: { type: integer }
+        itemCount: { type: integer }
+    Sparkline:
+      type: object
+      required: [scopeKey, points]
+      properties:
+        scopeKey: { type: string }
+        points:
+          type: array
+          items: { type: number }
+    OverviewItem:
+      type: object
+      required: [scopeKey, baseItemId, displayName]
+      properties:
+        scopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        latestSale: { type: ["number", "null"] }
+        medianSale24h: { type: ["number", "null"] }
+        bestAsk: { type: ["number", "null"] }
+        change24h: { type: ["number", "null"] }
+        change7d: { type: ["number", "null"] }
+        volume24h: { type: number }
+        soldQty24h: { type: number }
+        activeListings: { type: integer }
+        volatility: { type: ["number", "null"] }
+        discountPct: { type: ["number", "null"] }
+        confidence: { type: number }
+        spark:
+          type: array
+          items: { type: number }
+    MarketOverview:
+      type: object
+      required: [tradedValue24h, tradedValue7d, txCount24h, soldQty24h, activeListings, lastUpdated, stale, mostTraded, gainers, losers, mostVolatile, biggestDiscounts]
+      properties:
+        tradedValue24h: { type: number }
+        tradedValue7d: { type: number }
+        txCount24h: { type: integer }
+        soldQty24h: { type: number }
+        activeListings: { type: integer }
+        lastUpdated: { type: ["string", "null"] }
+        stale: { type: boolean }
+        collectionStartedAt: { type: ["string", "null"] }
+        mostTraded:
+          type: array
+          items: { $ref: "#/components/schemas/OverviewItem" }
+        gainers:
+          type: array
+          items: { $ref: "#/components/schemas/OverviewItem" }
+        losers:
+          type: array
+          items: { $ref: "#/components/schemas/OverviewItem" }
+        mostVolatile:
+          type: array
+          items: { $ref: "#/components/schemas/OverviewItem" }
+        biggestDiscounts:
+          type: array
+          items: { $ref: "#/components/schemas/OverviewItem" }
+    ScreenerRow:
+      type: object
+      required: [scopeKey, baseItemId, displayName, scope]
+      properties:
+        scopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        scope: { type: string }
+        bestAsk: { type: ["number", "null"] }
+        latestSale: { type: ["number", "null"] }
+        median24h: { type: ["number", "null"] }
+        change24h: { type: ["number", "null"] }
+        change7d: { type: ["number", "null"] }
+        volume24h: { type: number }
+        activeListings: { type: integer }
+        liquidity: { type: number }
+        volatility: { type: ["number", "null"] }
+        confidence: { type: number }
+        sampleCount: { type: integer }
+    ScreenerPage:
+      type: object
+      required: [rows, total, page, pageSize]
+      properties:
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/ScreenerRow" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    Enchant:
+      type: object
+      required: [name, level]
+      properties:
+        name: { type: string }
+        level: { type: integer }
+    Listing:
+      type: object
+      required: [id, scopeKey, baseItemId, displayName, quantity, totalPrice, unitPrice]
+      properties:
+        id: { type: integer }
+        scopeKey: { type: string }
+        variantScopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        sellerName: { type: ["string", "null"] }
+        sellerUuid: { type: ["string", "null"] }
+        quantity: { type: integer }
+        totalPrice: { type: number }
+        unitPrice: { type: number }
+        timeLeftMs: { type: ["number", "null"] }
+        approxExpiresAt: { type: ["string", "null"] }
+        enchants:
+          type: array
+          items: { $ref: "#/components/schemas/Enchant" }
+        trimMaterial: { type: ["string", "null"] }
+        trimPattern: { type: ["string", "null"] }
+        lore:
+          type: array
+          items: { type: string }
+    AuctionsPage:
+      type: object
+      required: [rows, total, page, pageSize, snapshotAt]
+      properties:
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/Listing" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+        snapshotAt: { type: ["string", "null"] }
+    Sale:
+      type: object
+      required: [id, scopeKey, baseItemId, displayName, quantity, totalPrice, unitPrice, soldAt]
+      properties:
+        id: { type: integer }
+        scopeKey: { type: string }
+        variantScopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        sellerName: { type: ["string", "null"] }
+        sellerUuid: { type: ["string", "null"] }
+        quantity: { type: integer }
+        totalPrice: { type: number }
+        unitPrice: { type: number }
+        soldAt: { type: string }
+        enchants:
+          type: array
+          items: { $ref: "#/components/schemas/Enchant" }
+    DataSalesPage:
+      type: object
+      required: [rows, total, page, pageSize]
+      properties:
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/Sale" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    MarketSignal:
+      type: object
+      required: [label, detail]
+      properties:
+        label: { type: string }
+        detail: { type: string }
+        tone: { type: string }
+    ItemMetrics:
+      type: object
+      required: [confidence]
+      properties:
+        latestSale: { type: ["number", "null"] }
+        bestAsk: { type: ["number", "null"] }
+        medianAsk: { type: ["number", "null"] }
+        median1h: { type: ["number", "null"] }
+        median24h: { type: ["number", "null"] }
+        median7d: { type: ["number", "null"] }
+        median30d: { type: ["number", "null"] }
+        change24h: { type: ["number", "null"] }
+        change7d: { type: ["number", "null"] }
+        change30d: { type: ["number", "null"] }
+        salesCount24h: { type: integer }
+        soldQty24h: { type: number }
+        tradedValue24h: { type: number }
+        activeListings: { type: integer }
+        listedQty: { type: number }
+        velocityPerHour: { type: ["number", "null"] }
+        velocityPerDay: { type: ["number", "null"] }
+        listingToSalesRatio: { type: ["number", "null"] }
+        daysOfSupply: { type: ["number", "null"] }
+        volatility: { type: ["number", "null"] }
+        askPremiumPct: { type: ["number", "null"] }
+        high24h: { type: ["number", "null"] }
+        low24h: { type: ["number", "null"] }
+        confidence: { type: number }
+    ItemVariantInfo:
+      type: object
+      required: [scopeKey, baseItemId, displayName]
+      properties:
+        scopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        variantHash: { type: ["string", "null"] }
+        enchants:
+          type: array
+          items: { $ref: "#/components/schemas/Enchant" }
+        trimMaterial: { type: ["string", "null"] }
+        trimPattern: { type: ["string", "null"] }
+        lore:
+          type: array
+          items: { type: string }
+    ItemDetail:
+      type: object
+      required: [scope, scopeKey, baseItemId, displayName, metrics, signals]
+      properties:
+        scope: { type: string }
+        scopeKey: { type: string }
+        baseItemId: { type: string }
+        displayName: { type: string }
+        baseScopeKey: { type: string }
+        mixedVariants: { type: boolean }
+        metrics: { $ref: "#/components/schemas/ItemMetrics" }
+        signals:
+          type: array
+          items: { $ref: "#/components/schemas/MarketSignal" }
+        variants:
+          type: array
+          items: { $ref: "#/components/schemas/ItemVariantInfo" }
+    Candle:
+      type: object
+      required: [t]
+      properties:
+        t: { type: string }
+        open: { type: ["number", "null"] }
+        high: { type: ["number", "null"] }
+        low: { type: ["number", "null"] }
+        close: { type: ["number", "null"] }
+        median: { type: ["number", "null"] }
+        volume: { type: number }
+        txCount: { type: integer }
+        gap: { type: boolean }
+    DepthPoint:
+      type: object
+      required: [unitPrice, cumulativeQty]
+      properties:
+        unitPrice: { type: number }
+        cumulativeQty: { type: number }
+    HistogramBin:
+      type: object
+      required: [from, to, count]
+      properties:
+        from: { type: number }
+        to: { type: number }
+        count: { type: integer }
+    PriceHistory:
+      type: object
+      required: [interval, range, candles, depth, histogram]
+      properties:
+        interval: { type: string }
+        range: { type: string }
+        candles:
+          type: array
+          items: { $ref: "#/components/schemas/Candle" }
+        depth:
+          type: array
+          items: { $ref: "#/components/schemas/DepthPoint" }
+        histogram:
+          type: array
+          items: { $ref: "#/components/schemas/HistogramBin" }
+    LeaderboardRow:
+      type: object
+      required: [rank, username, rawValue]
+      properties:
+        rank: { type: integer }
+        username: { type: string }
+        uuid: { type: ["string", "null"] }
+        rawValue: { type: string }
+        numericValue: { type: ["number", "null"] }
+        rankChange: { type: ["integer", "null"] }
+    LeaderboardPage:
+      type: object
+      required: [category, rows, total, page, pageSize]
+      properties:
+        category: { type: string }
+        capturedAt: { type: ["string", "null"] }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/LeaderboardRow" }
+        total: { type: integer }
+        page: { type: integer }
+        pageSize: { type: integer }
+    PlayerStat:
+      type: object
+      required: [key, label, rawValue]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        rawValue: { type: string }
+        numericValue: { type: ["number", "null"] }
+    PlayerStatPoint:
+      type: object
+      required: [t]
+      properties:
+        t: { type: string }
+        money: { type: ["number", "null"] }
+        kills: { type: ["number", "null"] }
+        playtime: { type: ["number", "null"] }
+    PlayerProfile:
+      type: object
+      required: [username, found, stats, history]
+      properties:
+        username: { type: string }
+        uuid: { type: ["string", "null"] }
+        found: { type: boolean }
+        rank: { type: ["string", "null"] }
+        location: { type: ["string", "null"] }
+        cachedAt: { type: ["string", "null"] }
+        stats:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerStat" }
+        history:
+          type: array
+          items: { $ref: "#/components/schemas/PlayerStatPoint" }
+        leaderboardAppearances:
+          type: array
+          items: { $ref: "#/components/schemas/LeaderboardRow" }
+    AdminLoginInput:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string }
+    AdminSession:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated: { type: boolean }
+    CollectorStatus:
+      type: object
+      required: [job, status]
+      properties:
+        job: { type: string }
+        status: { type: string }
+        lastRunAt: { type: ["string", "null"] }
+        lastFinishedAt: { type: ["string", "null"] }
+        complete: { type: ["boolean", "null"] }
+        recordsInserted: { type: ["integer", "null"] }
+        pagesFetched: { type: ["integer", "null"] }
+        upstreamRequests: { type: ["integer", "null"] }
+        errorSummary: { type: ["string", "null"] }
+    TableCount:
+      type: object
+      required: [table, rows]
+      properties:
+        table: { type: string }
+        rows: { type: integer }
+    AdminStatus:
+      type: object
+      required: [apiKeyConfigured, databaseConfigured, collectors, tableCounts]
+      properties:
+        apiKeyConfigured: { type: boolean }
+        databaseConfigured: { type: boolean }
+        requestsPerMinute: { type: integer }
+        requestConcurrency: { type: integer }
+        orderDataSource: { type: string }
+        collectionStartedAt: { type: ["string", "null"] }
+        collectors:
+          type: array
+          items: { $ref: "#/components/schemas/CollectorStatus" }
+        tableCounts:
+          type: array
+          items: { $ref: "#/components/schemas/TableCount" }
+    SyncTriggerInput:
+      type: object
+      required: [job]
+      properties:
+        job: { type: string, enum: [transactions, listings, leaderboards, rollups, cleanup, all] }
+    SyncRunResult:
+      type: object
+      required: [job, status, recordsInserted, pagesFetched, complete]
+      properties:
+        job: { type: string }
+        status: { type: string }
+        recordsInserted: { type: integer }
+        pagesFetched: { type: integer }
+        upstreamRequests: { type: integer }
+        complete: { type: boolean }
+        errorSummary: { type: ["string", "null"] }
+    WatchedPlayer:
+      type: object
+      required: [username]
+      properties:
+        username: { type: string }
+        uuid: { type: ["string", "null"] }
+        addedAt: { type: ["string", "null"] }
+    WatchedPlayerInput:
+      type: object
+      required: [username]
+      properties:
+        username: { type: string }
+    ImportRow:
+      type: object
+      required: [itemId, quantity, totalPrice, soldAt]
+      properties:
+        itemId: { type: string }
+        displayName: { type: string }
+        quantity: { type: number }
+        enchantsJson: { type: string }
+        trimJson: { type: string }
+        loreJson: { type: string }
+        contentsJson: { type: string }
+        totalPrice: { type: number }
+        sellerName: { type: string }
+        sellerUuid: { type: string }
+        soldAt: { type: string }
+    ImportInput:
+      type: object
+      required: [rows]
+      properties:
+        filename: { type: string }
+        rows:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRow" }
+    ImportRowError:
+      type: object
+      required: [row, error]
+      properties:
+        row: { type: integer }
+        error: { type: string }
+    ImportReport:
+      type: object
+      required: [rowsRead, accepted, rejected, committed]
+      properties:
+        rowsRead: { type: integer }
+        accepted: { type: integer }
+        rejected: { type: integer }
+        duplicates: { type: integer }
+        committed: { type: boolean }
+        errors:
+          type: array
+          items: { $ref: "#/components/schemas/ImportRowError" }

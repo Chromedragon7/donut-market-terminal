@@ -1,0 +1,7 @@
+- [Setup-status DB guard](setup-status-guard.md) — endpoints touching the DB must short-circuit when DATABASE_URL is unset, or the lazy DB proxy throws 500 instead of a graceful setup payload.
+- [JSON column filtering in Postgres](jsonb-text-filtering.md) — for substring search over jsonb columns (enchants/trim/lore), cast `::text ILIKE '%x%'`; simple and index-free but adequate at this scale.
+- [Money math boundary](money-math-boundary.md) — do all user-facing money arithmetic in decimal.js (Decimal from @workspace/donut); convert to Number only at the JSON/display boundary.
+- [DonutSMP schema null fields](donutsmp-null-fields.md) — API sends `null` for numeric/string fields; all schemas need `.nullish()` not `.optional()`, and collector accesses need `?? undefined` coercion.
+- [Listings collector partial-commit](listings-partial-commit.md) — collector skipped DB commit when status="partial" (page cap hit); fix: always commit staged data regardless of partial/complete.
+- [DonutSMP rate limit backoff](donutsmp-rate-limit.md) — API returns 429 with no Retry-After header; default backoff must be ≥65 s or retries burn quota and extend the block window.
+- [Item display names from API](item-display-names.md) — DonutSMP sends empty-string display_name for default items; use `||` (not `??`) to fall back to base_item_id in normalizeItem.

@@ -1,0 +1,26 @@
+{
+  "name": "donut-market-intelligence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Source-aware economy intelligence for a DonutSMP-compatible test server.",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm -r --if-present check",
+    "dev:api": "pnpm --filter @donut/api dev",
+    "dev:collector": "pnpm --filter @donut/collector dev",
+    "dev:web": "pnpm --filter @donut/web dev",
+    "format": "pnpm -r --if-present format",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "test:integration": "pnpm -r --if-present test:integration",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "railway:plan": "railway config plan"
+  },
+  "devDependencies": {
+    "railway": "3.11.0"
+  }
+}

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: donut_market
+      POSTGRES_PASSWORD: donut
+      POSTGRES_USER: donut
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U donut -d donut_market"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - donut-postgres:/var/lib/postgresql/data
+
+volumes:
+  donut-postgres:

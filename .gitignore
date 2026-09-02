@@ -1,0 +1,33 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# JavaScript / TypeScript
+node_modules/
+.pnpm-store/
+dist/
+.next/
+.vinext/
+.wrangler/
+coverage/
+*.tsbuildinfo
+
+# Local data and exports
+.data/
+backups/
+exports/
+*.dump
+*.sql.gz
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+pnpm-debug.log*

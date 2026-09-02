@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type SyntheticEvent } from 'react';
 import { LayoutGrid, Plus, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/safe-link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';

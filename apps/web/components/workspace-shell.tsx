@@ -9,7 +9,7 @@ import {
   Search,
   Settings2,
 } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/safe-link';
 
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';

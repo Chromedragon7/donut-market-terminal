@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/safe-link';
 
 import { ItemDetailLive } from '@/components/item-detail-live';
 import { ItemMarketEvidence } from '@/components/item-market-evidence';

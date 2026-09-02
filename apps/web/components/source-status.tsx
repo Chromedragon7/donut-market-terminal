@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { CircleAlert, Gauge, LockKeyhole, ShieldCheck, TriangleAlert, WifiOff } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/safe-link';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChartNoAxesCombined, CircleAlert, PackageOpen, ReceiptText } from 'lucide-react';
-import Link from 'next/link';
+import Link from '@/components/safe-link';
 import {
   CartesianGrid,
   Line,
